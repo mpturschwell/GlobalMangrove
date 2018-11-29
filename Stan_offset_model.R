@@ -51,33 +51,33 @@ stan_mod2 <- map2stan(alist(
                 (d + d_Nation[Nation_ID]) * FRAG, 
     
   #To add: ports, fragmentation,'land based pressures from Halpern'
-#  a_Nation[Nation_ID] ~ dnorm(0, sigma1),
-#  b_Nation[Nation_ID] ~ dnorm(0, sigma2), #uncorrelated slopes and intercepts
-#  c_Nation[Nation_ID] ~ dnorm(0, sigma3), #uncorrelated slopes and intercepts
-#  d_Nation[Nation_ID] ~ dnorm(0, sigma4), #uncorrelated slopes and intercepts
+  a_Nation[Nation_ID] ~ dnorm(0, sigma1),
+  b_Nation[Nation_ID] ~ dnorm(0, sigma2), #uncorrelated slopes and intercepts
+  c_Nation[Nation_ID] ~ dnorm(0, sigma3), #uncorrelated slopes and intercepts
+  d_Nation[Nation_ID] ~ dnorm(0, sigma4), #uncorrelated slopes and intercepts
   #mu <-  g0_NationID + g1_NationID*GDP
   
   #drivers model, how do pressure vary by drivers at country scale
-  c(a_Nation, b_Nation, c_Nation, d_Nation)[Nation_ID] ~ dmvnorm2(0, tau, Rho),     # correlated slopes and intercepts
+  #c(a_Nation, b_Nation, c_Nation, d_Nation)[Nation_ID] ~ dmvnorm2(0, tau, Rho),     # correlated slopes and intercepts
   a ~ dnorm(0, 10),
   b ~ dnorm(0, 1),
   c ~ dnorm(0, 1),
   d ~ dnorm(0, 1),
   sigma ~ dcauchy(0, 2.5),
-# sigma1 ~ dcauchy(0, 2.5),
-# sigma2 ~ dcauchy(0, 2.5),
-#  sigma3 ~ dcauchy(0, 2.5),
-#  sigma4 ~ dcauchy(0, 2.5)
-    tau ~ dcauchy(0, 2.5),
-    Rho ~ dlkjcorr(2)
+ sigma1 ~ dcauchy(0, 2.5),
+ sigma2 ~ dcauchy(0, 2.5),
+ sigma3 ~ dcauchy(0, 2.5),
+ sigma4 ~ dcauchy(0, 2.5)
+#    tau ~ dcauchy(0, 2.5),
+#    Rho ~ dlkjcorr(2)
   ),
-data = newdata, iter = 5000, warmup = 1000, chains = 2,
+data = newdata, iter = 2000, warmup = 500, chains = 2,
 control=list(adapt_delta = 0.8, max_treedepth = 10))
 
 
 ##############################################################
 plot(stan_mod2) # gives you MCMC chains 
-precis(stan_mod2,depth=2)
+precis(stan_mod2,depth=3)
 sp <- dashboard(stan_mod2)
 postcheck(stan_mod2)
 
