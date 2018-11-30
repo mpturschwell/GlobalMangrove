@@ -11,25 +11,43 @@ Sys.setenv(USE_CXX14 = 1)
 
 mangroves <- read.csv("GlobalMangroveData_Nov26.csv", header = T)
 
+# sites with GDP info 
+mangroves <- mangroves[!is.na(mangroves["GDP_Perc_Inc2000_2012"]),]
+mangroves$NATION <- droplevels(mangroves$NATION)
+
 # Using whole dataset
 # Response 
-y <- log(mangroves$area_2012 + 0.0000001) 
+addbit <- min(mangroves$area_2012[mangroves$area_2012>0])*0.1
+y <- log(mangroves$area_2012 + addbit) 
 
 # Lower level predictors
-PORT <- as.numeric(mangroves$SCPort_Dist_KM)
+#PORT <- as.numeric(mangroves$SCPort_Dist_KM)
 PROTECTION <- as.numeric(mangroves$SCProtectedArea)
-FRAG <- as.numeric(scale(mangroves$CLUMPY))
+#FRAG <- as.numeric(scale(mangroves$CLUMPY))
+#FRAG1 <- as.numeric(scale(mangroves$ENN_RA))
+# frag metrics to look at: PLAND = percentage of landscape, ENN_RA
+# LSI - the greater the value of LSI, the more dispersed are the patch types.
+# AREA_CV
+# SHAPE_AM/RA
+
+
 
 # Offset
-offset <- log(mangroves$area_2000 + 0.0000001)
+offset <- log(mangroves$area_2000 + addbit)
 
 # Random Effets 
 mangroves$NATION_number <- as.numeric(mangroves$NATION)
 Nation_ID <- as.integer(mangroves$NATION_number)
+Unique_Nations <- unique(Nation_ID)
 
 # Upper-level Predictors
+GDP <- as.numeric(mangroves$SC_GDP)
 
-newdata<- data.frame(y, PROTECTION, PORT, FRAG, Nation_ID, offset)
+newdata<- data.frame(y, PROTECTION, PORT, FRAG, FRAG1, Nation_ID, Unique_Nations, offset)
+
+newdata<- data.frame(y, PROTECTION, Nation_ID, Unique_Nations, offset)
+
+
 
 #############################################################################################
 #############################################################################################
@@ -46,30 +64,37 @@ stan_mod2 <- map2stan(alist(
   #DPSIR
   #Impacts/state changes esimated from Pressures and mgmt responses. 
   mu <- offset +(a + a_Nation[Nation_ID]) + 
-                (b + b_Nation[Nation_ID]) * PROTECTION +
-                (c + c_Nation[Nation_ID]) * PORT +
-                (d + d_Nation[Nation_ID]) * FRAG, 
+                (b + b_Nation[Nation_ID]) * PROTECTION,
+      #          (c + c_Nation[Nation_ID]) * PORT +
+      #          (d + d_Nation[Nation_ID]) * FRAG, 
     
   #To add: ports, fragmentation,'land based pressures from Halpern'
   a_Nation[Nation_ID] ~ dnorm(0, sigma1),
-  b_Nation[Nation_ID] ~ dnorm(0, sigma2), #uncorrelated slopes and intercepts
-  c_Nation[Nation_ID] ~ dnorm(0, sigma3), #uncorrelated slopes and intercepts
-  d_Nation[Nation_ID] ~ dnorm(0, sigma4), #uncorrelated slopes and intercepts
-  #mu <-  g0_NationID + g1_NationID*GDP
-  
+  b_Nation[Nation_ID] ~ dnorm(mu_b, sigma2), #uncorrelated slopes and intercepts
+ # c_Nation[Nation_ID] ~ dnorm(0, sigma3), #uncorrelated slopes and intercepts
+#  d_Nation[Nation_ID] ~ dnorm(0, sigma4), #uncorrelated slopes and intercepts
+  mu_b <-  gb1 *GDP,
+#mu_c <- gc1 *GDP,
+ 
   #drivers model, how do pressure vary by drivers at country scale
   #c(a_Nation, b_Nation, c_Nation, d_Nation)[Nation_ID] ~ dmvnorm2(0, tau, Rho),     # correlated slopes and intercepts
   a ~ dnorm(0, 10),
   b ~ dnorm(0, 1),
-  c ~ dnorm(0, 1),
-  d ~ dnorm(0, 1),
+
+# c ~ dnorm(0, 1),
+# d ~ dnorm(0, 1),
+ 
+#c(g0_Nation, g1_Nation)[Nation_ID] ~ dmvnorm2(0, tau, Rho1),     # correlated slopes and intercepts
+
   sigma ~ dcauchy(0, 2.5),
  sigma1 ~ dcauchy(0, 2.5),
  sigma2 ~ dcauchy(0, 2.5),
- sigma3 ~ dcauchy(0, 2.5),
- sigma4 ~ dcauchy(0, 2.5)
-#    tau ~ dcauchy(0, 2.5),
-#    Rho ~ dlkjcorr(2)
+ #sigma3 ~ dcauchy(0, 2.5),
+ #sigma4 ~ dcauchy(0, 2.5)
+    tau ~ dcauchy(0, 2.5),
+    Rho ~ dlkjcorr(2)
+    Rho1 ~ dlkjcorr(2)
+
   ),
 data = newdata, iter = 2000, warmup = 500, chains = 2,
 control=list(adapt_delta = 0.8, max_treedepth = 10))
@@ -83,6 +108,10 @@ postcheck(stan_mod2)
 
 
 stancode(stan_mod2)
+
+stanmod <- stan_mod2@stanfit
+stan_mod <- as.shinystan(stanmod)
+shinystan::launch_shinystan(stan_mod)
 
 ################################################
 #
