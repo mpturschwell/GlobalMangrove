@@ -1,5 +1,7 @@
-#JAGS MOD for Global Mangrove Trends 
-
+###############################################
+# JAGS Model for Global Mangrove Trends 
+# code by Mischa Turschwell 
+###############################################
 
 setwd("C:/POSTDOC_2018-2021/Mangrove_trends/Data/Sebastian")
 library(R2jags)
