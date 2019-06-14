@@ -45,9 +45,10 @@ GDP <- as.numeric(mangroves$SC_GDP)
 
 newdata<- data.frame(y, PROTECTION, PORT, FRAG, FRAG1, Nation_ID, Unique_Nations, offset)
 
-newdata<- data.frame(y, PROTECTION, Nation_ID, Unique_Nations, offset)
+newdata<- data.frame(y, PROTECTION, Nation_ID, offset)
 
-
+newdata <- list(y = y, PROTECTION = PROTECTION, Nation_ID = Nation_ID, Unique_Nations = Unique_Nations,
+                offset = offset, GDP = GDP)
 
 #############################################################################################
 #############################################################################################
@@ -69,10 +70,10 @@ stan_mod2 <- map2stan(alist(
       #        (d + d_Nation[Nation_ID]) * FRAG, 
     
   a_Nation[Nation_ID] ~ dnorm(0, sigma1),
-  b_Nation[Nation_ID] ~ dnorm(mu_b, sigma2), #uncorrelated slopes and intercepts
+  b_Nation[Nation_ID] ~ dnorm(0, sigma2), #uncorrelated slopes and intercepts
 # c_Nation[Nation_ID] ~ dnorm(0, sigma3), #uncorrelated slopes and intercepts
 # d_Nation[Nation_ID] ~ dnorm(0, sigma4), #uncorrelated slopes and intercepts
-  mu_b <-  gb1 *GDP,
+#  mu_b <-  ab1 +gb1 *GDP,
 #mu_c <- gc1 *GDP,
  
   #drivers model, how do pressure vary by drivers at country scale
@@ -80,7 +81,7 @@ stan_mod2 <- map2stan(alist(
   a ~ dnorm(0, 10),
   b ~ dnorm(0, 1),
 
- b1 ~ dnorm(0, 1),
+ #gb1 ~ dnorm(0, 1),
 # c ~ dnorm(0, 1),
 # d ~ dnorm(0, 1),
  
@@ -88,12 +89,12 @@ stan_mod2 <- map2stan(alist(
 
   sigma ~ dcauchy(0, 2.5),
  sigma1 ~ dcauchy(0, 2.5),
- sigma2 ~ dcauchy(0, 2.5),
+ sigma2 ~ dcauchy(0, 2.5)
  #sigma3 ~ dcauchy(0, 2.5),
  #sigma4 ~ dcauchy(0, 2.5)
-    tau ~ dcauchy(0, 2.5),
-    Rho ~ dlkjcorr(2)
-    Rho1 ~ dlkjcorr(2)
+  #  tau ~ dcauchy(0, 2.5),
+   # Rho ~ dlkjcorr(2)
+   # Rho1 ~ dlkjcorr(2)
 
   ),
 data = newdata, iter = 2000, warmup = 500, chains = 2,
